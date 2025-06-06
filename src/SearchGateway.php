@@ -55,9 +55,8 @@ class SearchGateway
      * Should output an array as $decoded['response']['resultPacket']
      * if api request worked, otherwise @throws Exception
      */
-    public function getResults(string $query, int $start, int $limit, string $sort): ?array
-    {
-       
+    public function getResults(string $query, string $query_and, string $query_phrase, string $query_not, string $meta_t, string $meta_f_sand, string $meta_c, int $start, int $limit, string $sort): ?array
+    {       
         if (!$this->client) {
             $message = SearchGateway::class. '::$client is not initialized, likely env vars are not configured
             correctly.';
@@ -70,6 +69,12 @@ class SearchGateway
             $requestQuery = [
                 'collection' => $this->api_collection,
                 'query' => $query,
+                'query_and' => $query_and,
+                'query_phrase' => $query_phrase,
+                'query_not' => $query_not,
+                'meta_t' => $meta_t,
+                'meta_f_sand' => $meta_f_sand,
+                'meta_c' => $meta_c,
                 'start_rank' => $start,
                 'num_ranks' => $limit,
                 'sort' => $sort
@@ -94,7 +99,6 @@ class SearchGateway
                 $this->logger->notice($message);
                 throw new Exception($message);
             }
-
            
             $body = $response->getBody();
             $decoded = json_decode($body, true);
