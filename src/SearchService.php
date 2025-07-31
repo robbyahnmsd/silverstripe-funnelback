@@ -6,6 +6,7 @@ use SilverStripe\Assets\File;
 use SilverStripe\Core\Config\Configurable;
 use SilverStripe\Core\Injector\Injectable;
 use SilverStripe\ORM\ArrayList;
+use SilverStripe\View\ArrayData;
 use SilverStripe\ORM\PaginatedList;
 
 /**
@@ -36,6 +37,8 @@ class SearchService
             }
 
             $results = $data['results'];
+            $contextualNavResults = $data['contextualNavigation']['categories'];
+
             $list = ArrayList::create();
 
             foreach ($results as $result) {
@@ -66,11 +69,94 @@ class SearchService
             $list->setTotalItems($data['resultsSummary']['totalMatching']);
             $list->setLimitItems(false);
 
+           
+            $contextualNavList = $this->formatContextualNavigation($contextualNavResults, $keyword);
+            $list->ContextualNavigation = $contextualNavList;
+
             return $list;
         } catch (\Exception $e) {
             return null;
         }
     }
+
+    /**
+     * Format contextual navigation results into a SilverStripe ArrayList
+     *
+     * @param array $contextualNavResults
+     * @return ArrayList
+     */
+    protected function formatContextualNavigation(array $contextualNavResults, string $keyword): ArrayList
+    {
+        $list = ArrayList::create();
+        
+        if (!empty($contextualNavResults)) {
+            foreach ($contextualNavResults as $category) {
+                $clusters = ArrayList::create();
+                
+                if (!empty($category['clusters'])) {
+                    foreach ($category['clusters'] as $cluster) {
+                        $highlightedQuery = $this->highlightKeywordInQuery($cluster['query'] ?? '', $keyword);
+                      
+                        $clusters->push(ArrayData::create([
+                            'Label' => $cluster['label'] ?? '',
+                            'Query' => $cluster['query'] ?? '',
+                            'HighlightedQuery' => $highlightedQuery,
+                            'Href' => $cluster['href'] ?? '',
+                            'Count' => $cluster['count'] ?? 0,
+                            'Keyword' => $keyword ?? '',
+                        ]));
+                    }
+                }
+                
+                $firstUppercasename = $this->firstUppercase($category['name'] ?? '');
+
+                $list->push(ArrayData::create([
+                    'Name' => $category['name'] ?? '',
+                    'FirstUppercaseName' => $firstUppercasename,
+                    'Keyword' => $keyword ?? '',
+                    'More' => $category['more'] ?? 0,
+                    'MoreLink' => $category['moreLink'],
+                    'FewerLink' => $category['fewerLink'],
+                    'Clusters' => $clusters,
+                ]));
+            }
+        }
+        
+        return $list;
+    }
+
+
+     /**
+     * Highlight matching keywords in a query string by wrapping them with <strong> tags
+     *
+     * @param string $query The query string to highlight
+     * @param string $keyword The keyword to highlight
+     * @return string The query with highlighted keywords
+     */
+    protected function highlightKeywordInQuery(string $query, string $keyword): string
+    {
+        if (empty($keyword) || empty($query)) {
+            return $query;
+        }
+
+        // Split keyword into individual words for better matching        
+        $keywords = array_filter(explode(' ', trim($keyword)));
+        
+        foreach ($keywords as $word) {
+            // Use case-insensitive replacement with word boundaries
+            $pattern = '/\b(' . preg_quote($word, '/') . ')\b/i';
+            $query = preg_replace($pattern, '<strong>$1</strong>', $query);
+        }
+        
+        $query = ucfirst($query);
+
+        return $query;
+    }
+
+    protected function firstUppercase(string $categoryName) {
+        return ucfirst($categoryName);
+    }
+
 
     /**
      * @param string $fileTitle The name of the file as provided by Funnelback (e.g. 'Service Specification')
@@ -122,5 +208,27 @@ class SearchService
         $path = preg_replace('/' . ASSETS_DIR . '\//', '', $path, 1);
 
         return File::find($path);
+    }
+
+    public function getContextualLinks(string $type = '', string $topic = '', int $limit = 5): ?ArrayList
+    {
+        try {
+            $gateway = SearchGateway::create();
+            $results = $gateway->getContextualNavigation($type, $topic, $limit);
+
+            $list = ArrayList::create();
+
+            foreach ($results as $result) {
+                $list->push(ArrayData::create([
+                    'Title' => $result['title'] ?? 'test',
+                    'URL' => $result['url'] ?? 'test',
+                    'Summary' => $result['summary'] ?? 'test',
+                ]));
+            }
+
+            return $list;
+        } catch (\Exception $e) {
+            return ArrayList::create(); // Empty list for safety
+        }
     }
 }

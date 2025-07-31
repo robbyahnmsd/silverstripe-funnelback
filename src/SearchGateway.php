@@ -9,6 +9,9 @@ use SilverStripe\Core\Config\Configurable;
 use SilverStripe\Core\Environment;
 use SilverStripe\Core\Injector\Injectable;
 
+use SilverStripe\Dev\Debug;
+
+
 class SearchGateway
 {
     use Configurable;
@@ -77,7 +80,9 @@ class SearchGateway
                 'meta_c' => $meta_c,
                 'start_rank' => $start,
                 'num_ranks' => $limit,
-                'sort' => $sort
+                'sort' => $sort,
+                'contextual_navigation' => 1,           // I thinks this is right one        
+                // 'contextual-navigation' => 1,
             ];
             
             $response = $this->client->request('GET', '/s/search.json', [
@@ -102,6 +107,50 @@ class SearchGateway
            
             $body = $response->getBody();
             $decoded = json_decode($body, true);
+
+            // type
+            // Debug::show($decoded['response']['resultPacket']['contextualNavigation']['categories']);
+
+            // Structure
+            // array(
+            //     0 => array(
+            //         "name" => "type",
+            //         "more" => 0,
+            //         "moreLink" => null,
+            //         "fewerLink" => null,
+            //         "clusters" => array(
+            //             0 => array(
+            //                 "href"  => "?clicked_fluster=low+income&query=%60low+income%60&num_ranks=10&collection=msd-workandincome-web-new&sort=Default&contextual_navigation=1&cluster0=income",
+            //                 "count" => 5,
+            //                 "label" => "Low...",
+            //                 "query" => "low income",
+            //             ),
+            //             1 => array(
+            //                 "href"  => "?clicked_fluster=your+income&query=%60your+Income%60&num_ranks=10&collection=msd-workandincome-web-new&sort=Default&contextual_navigation=1&cluster0=income",
+            //                 "count" => 3,
+            //                 "label" => "Your...",
+            //                 "query" => "your Income",
+            //             ),
+            //         ),
+            //     ),
+            //     1 => array(
+            //         "name" => "topic",
+            //         "more" => 0,
+            //         "moreLink" => null,
+            //         "fewerLink" => null,
+            //         "clusters" => array(
+            //             0 => array(
+            //                 "href"  => "?clicked_fluster=work+and+income&query=%60Work+and+Income%60&num_ranks=10&collection=msd-workandincome-web-new&sort=Default&contextual_navigation=1&cluster0=income",
+            //                 "count" => 99,
+            //                 "label" => "Work and...",
+            //                 "query" => "Work and Income",
+            //             ),
+            //         ),
+            //     ),
+            // );            
+
+            // topic
+            // var_dump($decoded['response']['resultPacket']['contextualNavigation']);
 
             if ($decoded == null) {
                 $this->logger->notice($message = "Invalid JSON response: ". $body);
@@ -139,4 +188,8 @@ class SearchGateway
 
         return true;
     }
+
+
+
+
 }
