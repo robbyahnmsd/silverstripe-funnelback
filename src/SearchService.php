@@ -37,7 +37,10 @@ class SearchService
             }
 
             $results = $data['results'];
-            $contextualNavResults = $data['contextualNavigation']['categories'];
+
+            if (isset($data['contextualNavigation']['categories'])) {
+                $contextualNavResults = $data['contextualNavigation']['categories'];
+            }
 
             $list = ArrayList::create();
 
@@ -69,11 +72,12 @@ class SearchService
             $list->setTotalItems($data['resultsSummary']['totalMatching']);
             $list->setLimitItems(false);
 
-           
-            $contextualNavList = $this->formatContextualNavigation($contextualNavResults, $keyword);
-            $list->ContextualNavigation = $contextualNavList;
+            if(isset($contextualNavResults)){
+                $contextualNavList = $this->formatContextualNavigation($contextualNavResults, $keyword);
+                $list->ContextualNavigation = $contextualNavList;
+            } 
 
-            return $list;
+            return $list;            
         } catch (\Exception $e) {
             return null;
         }
