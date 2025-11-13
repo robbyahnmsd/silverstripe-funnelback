@@ -29,7 +29,6 @@ class SearchService
         // Fetch results from the gateway and convert them into a standard Silverstripe ArrayList
         try {
             $gateway = SearchGateway::create();
-            // $data = $gateway->getResults($keyword, $start, $limit, $sort);
             $data = $gateway->getResults($keyword, $query_and, $query_phrase, $query_not, $meta_t, $meta_f_sand, $meta_c, $start, $limit, $sort);
 
             if (!$data || !isset($data['results']) || !isset($data['resultsSummary'])) {
@@ -77,7 +76,7 @@ class SearchService
                 $list->ContextualNavigation = $contextualNavList;
             } 
 
-            return $list;            
+            return $list;
         } catch (\Exception $e) {
             return null;
         }
@@ -124,11 +123,9 @@ class SearchService
                     'Clusters' => $clusters,
                 ]));
             }
-        }
-        
+        }        
         return $list;
     }
-
 
      /**
      * Highlight matching keywords in a query string by wrapping them with <strong> tags
@@ -160,7 +157,6 @@ class SearchService
     protected function firstUppercase(string $categoryName) {
         return ucfirst($categoryName);
     }
-
 
     /**
      * @param string $fileTitle The name of the file as provided by Funnelback (e.g. 'Service Specification')
@@ -234,5 +230,16 @@ class SearchService
         } catch (\Exception $e) {
             return ArrayList::create(); // Empty list for safety
         }
+    }
+
+    public function suggest(string $partialQuery): array
+    {
+        if (!$partialQuery) {
+            return [];
+        }
+
+        $gateway = SearchGateway::create();
+
+        return $gateway->getSuggestions($partialQuery);
     }
 }

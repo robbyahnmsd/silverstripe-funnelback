@@ -11,7 +11,6 @@ use SilverStripe\Core\Injector\Injectable;
 
 use SilverStripe\Dev\Debug;
 
-
 class SearchGateway
 {
     use Configurable;
@@ -188,8 +187,46 @@ class SearchGateway
 
         return true;
     }
+    
+    // https://msd-uat-search.squiz.cloud/s/suggest.json?collection=msd-workandincome-web&fmt=json++&alpha=0.5&profile=_default_preview&show=10&sort=0&partial_query=income
+    public function getSuggestions(string $partialQuery): array
+    {
+        if (!$this->client) {
+            $message = self::class . '::$client not initialized — check Funnelback env vars.';
+            $this->logger->notice($message);
+            throw new Exception($message);
+        }
 
+        try {
+            $response = $this->client->request('GET', '/s/suggest.json', [
+                'auth' => [$this->api_username, $this->api_password],
+                'query' => [
+                    'collection' => $this->api_collection,
+                    'profile' => '_default',
+                    'fmt' => 'json++',
+                    'partial_query' => $partialQuery,
+                    'show' => 10,
+                ],
+                'headers' => [
+                    'Accept' => 'application/json',
+                ],
+            ]);
 
+            if ($response->getStatusCode() !== 200) {
+                throw new Exception("Invalid Funnelback response: " . $response->getBody());
+            }
 
+            $jsonSuggestionbody = json_decode($response->getBody(), true);            
+
+            if (!isset($jsonSuggestionbody)) {
+                return [];
+            }
+
+            return $jsonSuggestionbody;
+        } catch (Exception $e) {
+            $this->logger->notice("Suggestion error: " . $e->getMessage());
+            return [];
+        }
+    }
 
 }
