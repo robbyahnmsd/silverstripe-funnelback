@@ -99,6 +99,18 @@ class SearchService
                 if (!empty($category['clusters'])) {
                     foreach ($category['clusters'] as $cluster) {
                         $highlightedQuery = $this->highlightKeywordInQuery($cluster['query'] ?? '', $keyword);
+
+                        $parts = parse_url($cluster['href']);
+                        parse_str($parts['query'] ?? '', $query);
+
+                        if (isset($query['query'])) {
+                            $query['q'] = $query['query'];
+                            unset($query['query']);
+                        }
+
+                        unset($query['collection']);
+
+                        $cluster['href'] = ($parts['path'] ?? '') . '?' . http_build_query($query);
                       
                         $clusters->push(ArrayData::create([
                             'Label' => $cluster['label'] ?? '',
