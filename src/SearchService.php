@@ -104,7 +104,8 @@ class SearchService
                         parse_str($parts['query'] ?? '', $query);
 
                         if (isset($query['query'])) {
-                            $query['q'] = $query['query'];
+                            $clean = str_replace('`', '', $query['query']);
+                            $query['q'] = $clean;
                             unset($query['query']);
                         }
 
